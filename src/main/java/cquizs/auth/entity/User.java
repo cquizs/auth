@@ -1,15 +1,18 @@
 package cquizs.auth.entity;
 
-import cquizs.auth.dto.JoinDto;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
 
+
 @Entity
 @Setter
 @Getter
+@RequiredArgsConstructor
 public class User {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -21,10 +24,10 @@ public class User {
 
     private String role;
 
-    public static User of(JoinDto joinDto) {
+    public static User create(String username, String password) {
         User user = new User();
-        user.setUsername(joinDto.getUsername());
-        user.setPassword(joinDto.getPassword());
+        user.setUsername(username);
+        user.setPassword(password);
         user.setRole("ROLE_USER");
 
         return user;
