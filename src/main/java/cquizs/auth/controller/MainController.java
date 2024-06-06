@@ -25,7 +25,7 @@ public class MainController {
 //        GrantedAuthority auth = iter.next();
 //        String role = auth.getAuthority();
 
-// 측약
+        // 측약
         String role = authentication.getAuthorities().iterator().next().getAuthority();
 
 
