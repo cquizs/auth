@@ -1,6 +1,6 @@
-package cquizs.auth.dto;
+package cquizs.auth.entity;
 
-import cquizs.auth.entity.User;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -8,22 +8,22 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.ArrayList;
 import java.util.Collection;
 
+@Data
 @RequiredArgsConstructor
-public class CustomUserDetails implements UserDetails {
+public class UserPrincipal implements UserDetails {
 
     private final User user;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        Collection<GrantedAuthority> collection = new ArrayList<>();
-        collection.add(new GrantedAuthority() {
+        Collection<GrantedAuthority> list = new ArrayList<>();
+        list.add(new GrantedAuthority() {
             @Override
             public String getAuthority() {
                 return user.getRole();
             }
         });
-
-        return collection;
+        return list;
     }
 
     @Override

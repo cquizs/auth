@@ -1,8 +1,8 @@
 package cquizs.auth.config;
 
-import cquizs.auth.jwt.JWTFilter;
-import cquizs.auth.jwt.JWTUtil;
-import cquizs.auth.jwt.LoginFilter;
+import cquizs.auth.filter.JWTFilter;
+import cquizs.auth.service.CustomUserDetailService;
+import cquizs.auth.util.JWTUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,18 +14,13 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-
-import javax.servlet.http.HttpServletRequest;
-import java.util.Collections;
 
 @Configuration // Spring Security 설정 클래스임을 나타내는 어노테이션
 @EnableWebSecurity // Spring Security 활성화
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final AuthenticationConfiguration authenticationConfiguration;
+    private final CustomUserDetailService customUserDetailService;
     private final JWTUtil jwtUtil;
 
     @Bean
@@ -40,47 +35,20 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        // CORS 설정
-        //        http.cors(cors -> cors
-        //                .configurationSource(new CorsConfigurationSource() {
-        //                    @Override
-        //                    public CorsConfiguration getCorsConfiguration(HttpServletRequest request) {
-        //                        CorsConfiguration configuration = new CorsConfiguration();
-        //                        configuration.setAllowedOrigins(Collections.singletonList("http://localhost:3000"));
-        //                        configuration.setAllowedMethods(Collections.singletonList("*"));
-        //                        configuration.setAllowCredentials(true);
-        //                        configuration.setAllowedHeaders(Collections.singletonList("*"));
-        //                        configuration.setMaxAge(3600L);
-        // configuration.setExposedHeaders(Collections.singletonList("Authorization"));
-        // return configuration;
-        // }
-        // })
-        // );
-
         http
-                .csrf().disable() // csrf disable
-                .formLogin().disable() // Form 로그인 방식 disable
-                .httpBasic().disable(); // httpBasic 인증 방식 disable
+                .csrf().disable() // CSRF 보호 비활성화
+                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS); // 세션을 상태 비저장 모드로 설정
 
         // 경로별 인가 작업
         http
                 .authorizeHttpRequests(auth -> auth
-                        .antMatchers("/", "/login", "/join").permitAll()
-                        .antMatchers("/admin").hasRole("ADMIN")
-                        .anyRequest().authenticated()
+//                        .antMatchers("/", "/login", "/join").permitAll() // 루트 경로, 로그인 및 가입 경로는 모든 사용자에게 허용
+                        .antMatchers("/", "/auth/login", "/auth/join").permitAll() // 루트 경로, 로그인 및 가입 경로는 모든 사용자에게 허용
+                        .antMatchers("/admin").hasRole("ADMIN") // /admin 경로는 ADMIN 역할만 허용
+                        .anyRequest().authenticated() // 그 외 모든 요청은 인증된 사용자만 허용
                 );
 
-        http
-                .addFilterBefore(new JWTFilter(jwtUtil), LoginFilter.class);
-
-        // 필터 추가 LoginFilter()는 인자를 받음 (AuthenticationManager() 메소드에 authenticationConfiguration 객체를 넣어야 함) 따라서 등록 필요
-        http
-                .addFilterAt(new LoginFilter(authenticationManager(authenticationConfiguration), jwtUtil), UsernamePasswordAuthenticationFilter.class);
-
-        // 세션 설정
-        http.sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-        );
+        http.addFilterBefore(new JWTFilter(jwtUtil, customUserDetailService), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

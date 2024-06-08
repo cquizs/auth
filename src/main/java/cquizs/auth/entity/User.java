@@ -1,35 +1,39 @@
 package cquizs.auth.entity;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
+import lombok.Data;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import javax.persistence.*;
+import java.time.LocalDateTime;
 
 
 @Entity
-@Setter
-@Getter
-@RequiredArgsConstructor
+@Data
 public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true)
+    @Column(nullable = false, unique = true)
     private String username;
 
+    @Column(nullable = false)
     private String password;
 
+    @Column(nullable = false)
+    private String nickname = "test";
+
+    @Column(nullable = false)
+    private Boolean emailVerified = true;
+
+    @CreationTimestamp
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    private LocalDateTime updatedAt;
+
+    @Column(nullable = false)
     private String role;
-
-    public static User create(String username, String password) {
-        User user = new User();
-        user.setUsername(username);
-        user.setPassword(password);
-        user.setRole("ROLE_USER");
-
-        return user;
-    }
 }
