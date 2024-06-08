@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.filter.RequestContextFilter;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
@@ -34,11 +35,13 @@ public class AuthController {
 
     /**
      * 회원 가입 요청 처리
+     *
      * @param join 가입 정보
      * @return HTTP 상태 코드 200
      */
     @PostMapping("/join")
     public ResponseEntity<Void> join(@RequestBody Join join) {
+        log.debug("회원 가입 : {} ", join);
         authService.join(join);
         return new ResponseEntity<>(HttpStatus.OK);
     }
@@ -46,13 +49,13 @@ public class AuthController {
     /**
      * 로그인 요청을 처리하고 JWT 토큰을 발급
      *
-     * @param login 로그인 정보
+     * @param login    로그인 정보
      * @param response HTTP 응답
      * @return 발급된 JWT 토큰
      */
     @PostMapping("/login")
     public ResponseEntity<JwtToken> login(@RequestBody Login login, HttpServletResponse response) {
-        log.debug("로그인 요청 : {} ",login);
+        log.debug("로그인 요청 : {} ", login);
         JwtToken token = authService.login(login);
         if (Objects.isNull(token)) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
@@ -63,14 +66,16 @@ public class AuthController {
 
     /**
      * Refresh 토큰을 사용하여 Access 토큰 재발급
-     * @param request HTTP 요청
+     *
+     * @param request  HTTP 요청
      * @param response HTTP 응답
      * @return 재발급된 JWT 토큰
      */
     @PostMapping("/refresh")
     public ResponseEntity<JwtToken> refresh(HttpServletRequest request, HttpServletResponse response) {
+        log.debug("{}", request);
         Cookie refreshCookie = getRefreshCookie(request);
-        if(Objects.isNull(refreshCookie)) {
+        if (Objects.isNull(refreshCookie)) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
 
@@ -82,14 +87,19 @@ public class AuthController {
 
     /**
      * 로그아웃 요청 처리 후 Refresh 토큰 쿠키 삭제
+     *
      * @param response HTTP 응답
      * @return HTTP 상태 코드 200 OK
      */
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(HttpServletResponse response) {
-        Cookie cookie = createCookie(null);
-        cookie.setMaxAge(0);
-        response.addCookie(cookie);
+    public ResponseEntity<Void> logout(HttpServletRequest request, HttpServletResponse response) {
+        Cookie refreshCookie = getRefreshCookie(request);
+        if (Objects.nonNull(refreshCookie)) {
+            authService.logout(refreshCookie.getValue());
+            Cookie cookie = createCookie(null);
+            cookie.setMaxAge(0);
+            response.addCookie(cookie);
+        }
         log.debug("로그아웃 성공");
         return new ResponseEntity<>(HttpStatus.OK);
     }

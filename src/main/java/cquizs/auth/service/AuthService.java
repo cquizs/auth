@@ -32,4 +32,5 @@ public interface AuthService {
      */
     JwtToken refresh(String refreshToken);
 
+    void logout(String refreshToken);
 }

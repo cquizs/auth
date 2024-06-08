@@ -35,8 +35,8 @@ public class JWTFilter extends OncePerRequestFilter {
     /**
      * 각 요청에 대해 필터를 적용
      *
-     * @param request HTTP 요청
-     * @param response HTTP 응답
+     * @param request     HTTP 요청
+     * @param response    HTTP 응답
      * @param filterChain 필터 체인
      * @throws ServletException
      * @throws IOException
@@ -49,18 +49,20 @@ public class JWTFilter extends OncePerRequestFilter {
     ) throws ServletException, IOException {
         // 인증이 안된 경우, 토큰이 존재하지 않은 경우 -> Controller 넘어간다.
         String accessToken = extractToken(request);
+        log.debug("없는 토큰 : {} ", accessToken);
 
         // accessToken 존재하고 유효한 경우
-        if(Objects.nonNull(accessToken) && jwtUtil.validateToken(accessToken)){
+        if (Objects.nonNull(accessToken) && jwtUtil.validateToken(accessToken)) {
             String username = jwtUtil.getUsername(accessToken);
             if (Objects.nonNull(username) && Objects.isNull(SecurityContextHolder.getContext().getAuthentication())) {
                 UserDetails userDetails = customUserDetailService.loadUserByUsername(username);
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
-        } else{
-          log.debug("토큰이 만료되었습니다.");
+        } else {
+            log.debug("토큰이 만료되었습니다.");
         }
+
         filterChain.doFilter(request, response);
     }
 
@@ -72,7 +74,7 @@ public class JWTFilter extends OncePerRequestFilter {
      */
     private String extractToken(HttpServletRequest request) {
         String authorization = request.getHeader(AUTHORIZATION_HEADER);
-        if(authorization != null && authorization.startsWith(PREFIX)) {
+        if (authorization != null && authorization.startsWith(PREFIX)) {
             return authorization.substring(PREFIX.length());
         }
         return null;

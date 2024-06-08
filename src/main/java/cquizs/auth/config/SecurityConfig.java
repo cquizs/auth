@@ -71,7 +71,7 @@ public class SecurityConfig {
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS) // 세션을 상태 비저장 모드로 설정
                 .and()
                 .authorizeHttpRequests(auth -> auth
-                        .antMatchers("/", "/auth/login", "/auth/login").permitAll() // 루트 경로, 로그인 및 가입 경로는 모든 사용자에게 허용
+                        .antMatchers("/", "/auth/join", "/auth/login").permitAll() // 루트 경로, 로그인 및 가입 경로는 모든 사용자에게 허용
                         .antMatchers("/admin").hasRole("ADMIN") // /admin 경로는 ADMIN 역할만 허용
                         .anyRequest().authenticated() // 그 외 모든 요청은 인증된 사용자만 허용
                 )
@@ -80,10 +80,9 @@ public class SecurityConfig {
                         .logoutSuccessHandler(new LogoutSuccessHandler() {
                             @Override
                             public void onLogoutSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
-                                response.setStatus(HttpStatus.OK.value());
+                                response.setStatus(HttpStatus.OK.value()); // 로그아웃 성공 시 상태 코드 설정
                             }
-                        }) // 로그아웃 성공 시 상태 코드 설정
-                        .deleteCookies("refreshToken") // 로그아웃 시 삭제할 쿠키 설정
+                        })
                 )
                 // JWT 필터를 UsernamePasswordAuthenticationFilter 전에 추가
                 .addFilterBefore(new JWTFilter(jwtUtil, customUserDetailService), UsernamePasswordAuthenticationFilter.class);

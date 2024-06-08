@@ -3,8 +3,10 @@ package cquizs.auth.service;
 import cquizs.auth.dto.AuthData.Join;
 import cquizs.auth.dto.AuthData.JwtToken;
 import cquizs.auth.dto.AuthData.Login;
+import cquizs.auth.entity.BlackList;
 import cquizs.auth.entity.User;
 import cquizs.auth.entity.UserPrincipal;
+import cquizs.auth.repository.BlacklistRepository;
 import cquizs.auth.repository.UserRepository;
 import cquizs.auth.util.JWTUtil;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +18,11 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Objects;
+import java.util.Optional;
+
 /**
  * 사용자 인증 및 JWT 토큰 관리
  */
@@ -24,13 +31,17 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
-    private final BCryptPasswordEncoder bCryptPasswordEncoder;
+
     private final UserRepository userRepository;
+    private final BlacklistRepository blacklistRepository;
+
     private final AuthenticationManager authenticationManager;
+    private final BCryptPasswordEncoder bCryptPasswordEncoder;
     private final JWTUtil jwtUtil;
 
     /**
      * 회원 가입 처리
+     *
      * @param join 가입 정보
      */
     @Override
@@ -47,9 +58,7 @@ public class AuthServiceImpl implements AuthService {
         User user = new User();
         user.setUsername(join.getUsername());
         user.setPassword(encodedPassword);
-        if (join.getNickname() != null) {
-            user.setNickname(join.getNickname());
-        }
+        user.setNickname(join.getNickname());
 
         // 사용자 정보 저장
         userRepository.save(user);
@@ -67,7 +76,7 @@ public class AuthServiceImpl implements AuthService {
         try {
             // 사용자 인증
             Authentication authentication = authenticationManager
-                    .authenticate( new UsernamePasswordAuthenticationToken(login.getUsername(), login.getPassword()
+                    .authenticate(new UsernamePasswordAuthenticationToken(login.getUsername(), login.getPassword()
                     ));
             UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
 
@@ -86,12 +95,39 @@ public class AuthServiceImpl implements AuthService {
      */
     @Override
     public JwtToken refresh(String refreshToken) {
-        if (jwtUtil.validateToken(refreshToken)) {
+        log.debug("refresh : {}", refreshToken);
+        if (jwtUtil.validateToken(refreshToken) && !isBlacklisted(refreshToken)) {
+            log.debug("유효한 refresh : {}", refreshToken);
             String username = jwtUtil.getUsername(refreshToken);
             log.debug("username : {} ", username);
             User user = userRepository.findByUsername(username);
             return jwtUtil.createToken(user);
+        }else{
+            log.debug("유효하지않은 refresh : {}", refreshToken);
         }
         return null;
+    }
+
+    /**
+     * 로그아웃시 refreshToken 블랙리스트에 추가
+     *
+     * @param refreshToken 로그아웃되는 코드
+     */
+    @Override
+    public void logout(String refreshToken) {
+        if (Objects.nonNull(refreshToken) && jwtUtil.validateToken(refreshToken)) {
+            BlackList blackList = new BlackList();
+            blackList.setToken(refreshToken);
+            LocalDateTime expiryDate = LocalDateTime.ofInstant(
+                    jwtUtil.getExpiration(refreshToken).toInstant(),
+                    ZoneId.systemDefault());
+            blackList.setExpiryDate(expiryDate);
+
+            blacklistRepository.save(blackList);
+        }
+    }
+
+    private boolean isBlacklisted(String token) {
+        return blacklistRepository.findByToken(token).isPresent();
     }
 }

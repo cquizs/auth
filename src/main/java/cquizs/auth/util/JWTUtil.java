@@ -130,4 +130,8 @@ public class JWTUtil {
     public String getRole(String token) {
         return (String) extractClaims(token).get("role");
     }
+
+    public Date getExpiration(String token) {
+        return extractClaims(token).getExpiration();
+    }
 }
