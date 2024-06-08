@@ -99,7 +99,6 @@ public class AuthServiceImpl implements AuthService {
         if (jwtUtil.validateToken(refreshToken) && !isBlacklisted(refreshToken)) {
             log.debug("유효한 refresh : {}", refreshToken);
             String username = jwtUtil.getUsername(refreshToken);
-            log.debug("username : {} ", username);
             User user = userRepository.findByUsername(username);
             return jwtUtil.createToken(user);
         }else{
@@ -115,7 +114,7 @@ public class AuthServiceImpl implements AuthService {
      */
     @Override
     public void logout(String refreshToken) {
-        if (Objects.nonNull(refreshToken) && jwtUtil.validateToken(refreshToken)) {
+        if (jwtUtil.validateToken(refreshToken)) {
             BlackList blackList = new BlackList();
             blackList.setToken(refreshToken);
             LocalDateTime expiryDate = LocalDateTime.ofInstant(
@@ -127,6 +126,13 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
+
+
+    /**
+     * 리프레시 토큰이 블랙리스트인지 아닌지 확인
+     * @param token 리프레시 토큰
+     * @return 블랙리스트라면 true, 아니면 false
+     */
     private boolean isBlacklisted(String token) {
         return blacklistRepository.findByToken(token).isPresent();
     }

@@ -3,6 +3,7 @@ package cquizs.auth.repository;
 import cquizs.auth.entity.BlackList;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 /**
@@ -10,4 +11,6 @@ import java.util.Optional;
  */
 public interface BlacklistRepository extends JpaRepository<BlackList, String> {
     Optional<BlackList> findByToken(String token);
+
+    void deleteAllByExpiryDateBefore(LocalDateTime date);
 }
