@@ -9,6 +9,7 @@ public class AuthData {
     @AllArgsConstructor
     public static class JwtToken{
         private String accessToken;
+        private String refreshToken;
     }
 
 

@@ -3,6 +3,7 @@ package cquizs.auth.service;
 import cquizs.auth.dto.AuthData;
 import cquizs.auth.dto.AuthData.Join;
 import cquizs.auth.dto.AuthData.JwtToken;
+import cquizs.auth.dto.AuthData.Login;
 import cquizs.auth.entity.User;
 import cquizs.auth.entity.UserPrincipal;
 import cquizs.auth.repository.UserRepository;
@@ -45,17 +46,29 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public JwtToken login(AuthData.Login login) {
+    public JwtToken login(Login login) {
         try {
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(login.getUsername(), login.getPassword()
                     ));
             UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
 
+            log.debug("로그인 : {}", principal.getUser());
             return jwtUtil.createToken(principal.getUser());
         } catch (AuthenticationException e) {
             log.error("로그인 실패");
             return null;
         }
+    }
+
+    @Override
+    public JwtToken refresh(String refreshToken) {
+        if (jwtUtil.validateToken(refreshToken)) {
+            String username = jwtUtil.getUsername(refreshToken);
+            log.debug("username : {} ", username);
+            User user = userRepository.findByUsername(username);
+            return jwtUtil.createToken(user);
+        }
+        return null;
     }
 }

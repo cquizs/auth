@@ -8,4 +8,7 @@ public interface AuthService {
     void join(Join join);
 
     JwtToken login(Login login);
+
+    JwtToken refresh(String refreshToken);
+
 }

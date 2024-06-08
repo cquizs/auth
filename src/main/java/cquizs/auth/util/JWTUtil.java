@@ -1,6 +1,5 @@
 package cquizs.auth.util;
 
-import cquizs.auth.dto.AuthData;
 import cquizs.auth.dto.AuthData.JwtToken;
 import cquizs.auth.entity.User;
 import io.jsonwebtoken.Claims;
@@ -20,16 +19,21 @@ public class JWTUtil {
 
     private final Key key;
 
-    private final long validityInMilliseconds;
+    private final long accessTokenValidity;
+    private final long refreshTokenValidity;
 
-    public JWTUtil(@Value("${jwt.secret}") String secretKey, @Value("${jwt.expiration}") long validityInMilliseconds) {
+    public JWTUtil(@Value("${jwt.secret}") String secretKey,
+                   @Value("${jwt.accessTokenExpiration}") long accessTokenValidity,
+                   @Value("${jwt.refreshTokenExpiration}") long refreshTokenValidity) {
         this.key = Keys.hmacShaKeyFor(secretKey.getBytes());
-        this.validityInMilliseconds = validityInMilliseconds;
+        this.accessTokenValidity = accessTokenValidity;
+        this.refreshTokenValidity = refreshTokenValidity;
     }
 
     public JwtToken createToken(User user) {
         Date now = new Date();
-        Date accessTokenExpire = new Date(now.getTime() + validityInMilliseconds);
+        Date accessTokenExpire = new Date(now.getTime() + accessTokenValidity);
+        Date refreshTokenExpire = new Date(now.getTime() + refreshTokenValidity);
 
         String accessToken = Jwts.builder()
                 .claim("username", user.getUsername())
@@ -41,7 +45,16 @@ public class JWTUtil {
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
 
-        return new JwtToken(accessToken);
+        String refreshToken = Jwts.builder()
+                .claim("username", user.getUsername())
+                .subject(user.getId().toString())
+                .issuedAt(now)
+                .expiration(refreshTokenExpire)
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+
+
+        return new JwtToken(accessToken, refreshToken);
     }
 
     // 토큰에서 클레임 추출
