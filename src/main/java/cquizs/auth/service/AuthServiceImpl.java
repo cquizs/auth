@@ -1,6 +1,5 @@
 package cquizs.auth.service;
 
-import cquizs.auth.dto.AuthData;
 import cquizs.auth.dto.AuthData.Join;
 import cquizs.auth.dto.AuthData.JwtToken;
 import cquizs.auth.dto.AuthData.Login;
@@ -17,6 +16,9 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+/**
+ * 사용자 인증 및 JWT 토큰 관리
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -27,6 +29,10 @@ public class AuthServiceImpl implements AuthService {
     private final AuthenticationManager authenticationManager;
     private final JWTUtil jwtUtil;
 
+    /**
+     * 회원 가입 처리
+     * @param join 가입 정보
+     */
     @Override
     public void join(Join join) {
         if (userRepository.existsByUsername(join.getUsername())) {
@@ -34,26 +40,37 @@ public class AuthServiceImpl implements AuthService {
             return;
         }
 
+        // 비밀번호 암호화
         String encodedPassword = bCryptPasswordEncoder.encode(join.getPassword());
 
+        // 사용자 정보 설정
         User user = new User();
         user.setUsername(join.getUsername());
         user.setPassword(encodedPassword);
-        user.setNickname("임시 이름");
-        user.setRole("ROLE_USER");
+        if (join.getNickname() != null) {
+            user.setNickname(join.getNickname());
+        }
 
+        // 사용자 정보 저장
         userRepository.save(user);
     }
 
+    /**
+     * 사용자의 로그인 요청을 처리하고 JWT 토큰을 발급
+     *
+     * @param login 로그인 정보
+     * @return 발급된 JWT 토큰
+     */
     @Override
     public JwtToken login(Login login) {
+        log.debug("login : {}", login);
         try {
-            Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(login.getUsername(), login.getPassword()
+            // 사용자 인증
+            Authentication authentication = authenticationManager
+                    .authenticate( new UsernamePasswordAuthenticationToken(login.getUsername(), login.getPassword()
                     ));
             UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
 
-            log.debug("로그인 : {}", principal.getUser());
             return jwtUtil.createToken(principal.getUser());
         } catch (AuthenticationException e) {
             log.error("로그인 실패");
@@ -61,6 +78,12 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
+    /**
+     * Refresh 토큰을 사용하여 새로운 JWT 토큰 발급
+     *
+     * @param refreshToken Refresh 토큰
+     * @return 새로 발급된 JWT 토큰
+     */
     @Override
     public JwtToken refresh(String refreshToken) {
         if (jwtUtil.validateToken(refreshToken)) {
